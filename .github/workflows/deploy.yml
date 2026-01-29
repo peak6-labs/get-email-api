@@ -46,6 +46,7 @@ jobs:
             --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
             --platform managed \
             --region $REGION \
+            --port 8000 \
             --set-env-vars APOLLO_API_KEY=${{ secrets.APOLLO_API_KEY }} \
             --allow-unauthenticated \
             --memory 256Mi \
