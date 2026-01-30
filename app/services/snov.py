@@ -54,18 +54,20 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         try:
             # Step 1: Submit the LinkedIn URL for processing
-            # Snov.io expects urls[] as form data with proper array encoding
+            # Snov.io expects urls[] as form data
             start_response = await client.post(
                 f"{SNOV_BASE_URL}/v2/li-profiles-by-urls/start",
                 headers={"Authorization": f"Bearer {access_token}"},
-                data=[("urls[]", person.linkedin_url)],
+                data={"urls[]": person.linkedin_url},
             )
 
-            if start_response.status_code != 200:
+            # 200 = immediate result, 202 = accepted for async processing
+            if start_response.status_code not in (200, 202):
                 return handle_http_error(start_response.status_code, "Snov.io", person.linkedin_url)
 
             start_data = start_response.json()
-            task_hash = start_data.get("task_hash")
+            # task_hash can be at top level or nested in data
+            task_hash = start_data.get("task_hash") or start_data.get("data", {}).get("task_hash")
 
             if not task_hash:
                 return create_error("api_error", "Snov.io did not return task hash", person.linkedin_url)
@@ -90,11 +92,16 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
                     continue  # Still processing
 
                 if status == "completed":
-                    profiles = result_data.get("data", [])
-                    if not profiles:
+                    data_items = result_data.get("data", [])
+                    if not data_items:
                         return create_error("not_found", "No profile found in Snov.io", person.linkedin_url)
 
-                    profile = profiles[0] if isinstance(profiles, list) else profiles
+                    # Data structure: [{url: "...", result: {profile data}}]
+                    item = data_items[0] if isinstance(data_items, list) else data_items
+                    profile = item.get("result", item) if isinstance(item, dict) else item
+
+                    if not profile:
+                        return create_error("not_found", "No profile data in Snov.io response", person.linkedin_url)
 
                     # Extract email
                     email = profile.get("email")
@@ -113,13 +120,22 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
                     last_name = profile.get("lastName", "") or profile.get("last_name", "")
                     name = f"{first_name} {last_name}".strip() or profile.get("name")
 
+                    # Extract title and company from positions if available
+                    title = None
+                    company = None
+                    positions = profile.get("positions", [])
+                    if positions and isinstance(positions, list):
+                        current_pos = positions[0]
+                        title = current_pos.get("title")
+                        company = current_pos.get("name")
+
                     return create_success(
                         email=email,
-                        linkedin_url=profile.get("linkedin") or profile.get("social_link") or person.linkedin_url,
+                        linkedin_url=person.linkedin_url,
                         source=PROVIDER_NAME,
                         name=name or None,
-                        title=profile.get("position") or profile.get("title"),
-                        company=profile.get("company") or profile.get("company_name"),
+                        title=title or profile.get("position") or profile.get("title"),
+                        company=company or profile.get("company") or profile.get("company_name"),
                     )
 
                 # Status is error or unknown
