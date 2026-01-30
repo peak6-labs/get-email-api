@@ -49,21 +49,20 @@ jobs:
           SNOV_API_KEY: ${{ secrets.SNOV_API_KEY }}
           PROVIDER_ORDER: ${{ secrets.PROVIDER_ORDER }}
         run: |
-          # Build env vars string, only including non-empty values
-          ENV_VARS="APOLLO_API_KEY=${APOLLO_API_KEY}"
-          ENV_VARS="${ENV_VARS},PROVIDER_ORDER=${PROVIDER_ORDER}"
+          # Build env vars string using ^ as separator (to handle commas in values)
+          ENV_VARS="^@^APOLLO_API_KEY=${APOLLO_API_KEY}@PROVIDER_ORDER=${PROVIDER_ORDER}"
 
           if [ -n "$ROCKETREACH_API_KEY" ]; then
-            ENV_VARS="${ENV_VARS},ROCKETREACH_API_KEY=${ROCKETREACH_API_KEY}"
+            ENV_VARS="${ENV_VARS}@ROCKETREACH_API_KEY=${ROCKETREACH_API_KEY}"
           fi
           if [ -n "$LUSHA_API_KEY" ]; then
-            ENV_VARS="${ENV_VARS},LUSHA_API_KEY=${LUSHA_API_KEY}"
+            ENV_VARS="${ENV_VARS}@LUSHA_API_KEY=${LUSHA_API_KEY}"
           fi
           if [ -n "$PROSPEO_API_KEY" ]; then
-            ENV_VARS="${ENV_VARS},PROSPEO_API_KEY=${PROSPEO_API_KEY}"
+            ENV_VARS="${ENV_VARS}@PROSPEO_API_KEY=${PROSPEO_API_KEY}"
           fi
           if [ -n "$SNOV_API_KEY" ]; then
-            ENV_VARS="${ENV_VARS},SNOV_API_KEY=${SNOV_API_KEY}"
+            ENV_VARS="${ENV_VARS}@SNOV_API_KEY=${SNOV_API_KEY}"
           fi
 
           gcloud run deploy $SERVICE_NAME \
