@@ -105,11 +105,12 @@ async def _find_email_by_name_domain(client: httpx.AsyncClient, access_token: st
             },
         )
 
-        if start_response.status_code != 200:
+        # API returns 200 or 202 (Accepted) for async tasks
+        if start_response.status_code not in (200, 202):
             return None
 
         start_data = start_response.json()
-        task_hash = start_data.get("data", {}).get("task_hash")
+        task_hash = start_data.get("data", {}).get("task_hash") or start_data.get("task_hash")
 
         if not task_hash:
             return None
