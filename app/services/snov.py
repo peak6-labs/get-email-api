@@ -54,10 +54,11 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         try:
             # Step 1: Submit the LinkedIn URL for processing
+            # Snov.io expects urls[] as form data with proper array encoding
             start_response = await client.post(
                 f"{SNOV_BASE_URL}/v2/li-profiles-by-urls/start",
-                headers=_get_headers(access_token),
-                data={"urls[]": person.linkedin_url},
+                headers={"Authorization": f"Bearer {access_token}"},
+                data=[("urls[]", person.linkedin_url)],
             )
 
             if start_response.status_code != 200:
@@ -75,7 +76,7 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
 
                 result_response = await client.get(
                     f"{SNOV_BASE_URL}/v2/li-profiles-by-urls/result",
-                    headers=_get_headers(access_token),
+                    headers={"Authorization": f"Bearer {access_token}"},
                     params={"task_hash": task_hash},
                 )
 
