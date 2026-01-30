@@ -16,16 +16,18 @@ def _get_headers(api_key: str) -> Dict[str, str]:
 
 
 async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
-    """Enrich a person via Prospeo's social-url-enrichment endpoint."""
-    # Prospeo uses POST with social URL
+    """Enrich a person via Prospeo's enrich-person endpoint."""
+    # New endpoint format (migrated from deprecated social-url-enrichment)
     payload = {
-        "url": person.linkedin_url,
+        "data": {
+            "linkedin_url": person.linkedin_url,
+        }
     }
 
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         try:
             response = await client.post(
-                f"{PROSPEO_BASE_URL}/social-url-enrichment",
+                f"{PROSPEO_BASE_URL}/enrich-person",
                 headers=_get_headers(api_key),
                 json=payload,
             )
@@ -35,11 +37,12 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
 
             data = response.json()
 
-            # Check for success response
-            if not data.get("success", True) or data.get("error"):
-                return create_error("not_found", "No match found in Prospeo", person.linkedin_url)
+            # Check for error response
+            if data.get("error"):
+                error_msg = data.get("message", "No match found in Prospeo")
+                return create_error("not_found", error_msg, person.linkedin_url)
 
-            # Extract from response (may be in 'response' wrapper or direct)
+            # Extract from response wrapper
             result = data.get("response", data)
 
             email = result.get("email")
