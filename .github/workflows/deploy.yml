@@ -47,7 +47,12 @@ jobs:
             --platform managed \
             --region $REGION \
             --port 8000 \
-            --set-env-vars APOLLO_API_KEY=${{ secrets.APOLLO_API_KEY }} \
+            --set-env-vars "APOLLO_API_KEY=${{ secrets.APOLLO_API_KEY }}" \
+            --set-env-vars "ROCKETREACH_API_KEY=${{ secrets.ROCKETREACH_API_KEY }}" \
+            --set-env-vars "LUSHA_API_KEY=${{ secrets.LUSHA_API_KEY }}" \
+            --set-env-vars "PROSPEO_API_KEY=${{ secrets.PROSPEO_API_KEY }}" \
+            --set-env-vars "SNOV_API_KEY=${{ secrets.SNOV_API_KEY }}" \
+            --set-env-vars "PROVIDER_ORDER=${{ secrets.PROVIDER_ORDER }}" \
             --allow-unauthenticated \
             --memory 256Mi \
             --min-instances 0 \

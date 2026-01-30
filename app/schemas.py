@@ -2,6 +2,19 @@ from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 
+# Provider sources
+ProviderSource = Literal["apollo", "rocketreach", "lusha", "prospeo", "snov"]
+
+
+class ApiKeys(BaseModel):
+    """Optional API keys that override environment defaults."""
+    apollo: Optional[str] = None
+    rocketreach: Optional[str] = None
+    lusha: Optional[str] = None
+    prospeo: Optional[str] = None
+    snov: Optional[str] = None
+
+
 class PersonInput(BaseModel):
     linkedin_url: str
     first_name: Optional[str] = None
@@ -13,6 +26,12 @@ class PersonInput(BaseModel):
     phone: Optional[str] = None
 
 
+class EnrichmentRequest(BaseModel):
+    """Single enrichment request with optional API keys."""
+    person: PersonInput
+    api_keys: Optional[ApiKeys] = None
+
+
 class EnrichmentSuccess(BaseModel):
     success: Literal[True] = True
     email: str
@@ -20,7 +39,7 @@ class EnrichmentSuccess(BaseModel):
     title: Optional[str] = None
     company: Optional[str] = None
     linkedin_url: str
-    source: Literal["apollo"] = "apollo"
+    source: ProviderSource = "apollo"
 
 
 class EnrichmentError(BaseModel):
@@ -35,6 +54,7 @@ EnrichmentResponse = Union[EnrichmentSuccess, EnrichmentError]
 
 class BulkEnrichmentRequest(BaseModel):
     people: List[PersonInput] = Field(..., max_length=10)
+    api_keys: Optional[ApiKeys] = None
 
 
 class BulkEnrichmentResponse(BaseModel):
