@@ -41,13 +41,37 @@ jobs:
           docker push gcr.io/$PROJECT_ID/$SERVICE_NAME:latest
 
       - name: Deploy to Cloud Run
+        env:
+          APOLLO_API_KEY: ${{ secrets.APOLLO_API_KEY }}
+          ROCKETREACH_API_KEY: ${{ secrets.ROCKETREACH_API_KEY }}
+          LUSHA_API_KEY: ${{ secrets.LUSHA_API_KEY }}
+          PROSPEO_API_KEY: ${{ secrets.PROSPEO_API_KEY }}
+          SNOV_API_KEY: ${{ secrets.SNOV_API_KEY }}
+          PROVIDER_ORDER: ${{ secrets.PROVIDER_ORDER }}
         run: |
+          # Build env vars string, only including non-empty values
+          ENV_VARS="APOLLO_API_KEY=${APOLLO_API_KEY}"
+          ENV_VARS="${ENV_VARS},PROVIDER_ORDER=${PROVIDER_ORDER}"
+
+          if [ -n "$ROCKETREACH_API_KEY" ]; then
+            ENV_VARS="${ENV_VARS},ROCKETREACH_API_KEY=${ROCKETREACH_API_KEY}"
+          fi
+          if [ -n "$LUSHA_API_KEY" ]; then
+            ENV_VARS="${ENV_VARS},LUSHA_API_KEY=${LUSHA_API_KEY}"
+          fi
+          if [ -n "$PROSPEO_API_KEY" ]; then
+            ENV_VARS="${ENV_VARS},PROSPEO_API_KEY=${PROSPEO_API_KEY}"
+          fi
+          if [ -n "$SNOV_API_KEY" ]; then
+            ENV_VARS="${ENV_VARS},SNOV_API_KEY=${SNOV_API_KEY}"
+          fi
+
           gcloud run deploy $SERVICE_NAME \
             --image gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA \
             --platform managed \
             --region $REGION \
             --port 8000 \
-            --set-env-vars "APOLLO_API_KEY=${{ secrets.APOLLO_API_KEY }},ROCKETREACH_API_KEY=${{ secrets.ROCKETREACH_API_KEY }},LUSHA_API_KEY=${{ secrets.LUSHA_API_KEY }},PROSPEO_API_KEY=${{ secrets.PROSPEO_API_KEY }},SNOV_API_KEY=${{ secrets.SNOV_API_KEY }},PROVIDER_ORDER=${{ secrets.PROVIDER_ORDER }}" \
+            --set-env-vars "${ENV_VARS}" \
             --allow-unauthenticated \
             --memory 256Mi \
             --min-instances 0 \
