@@ -40,12 +40,13 @@ def _get_api_key(provider: str, user_keys: Optional[ApiKeys]) -> Optional[str]:
 async def enrich_person(
     person: PersonInput,
     api_keys: Optional[ApiKeys] = None,
+    providers: Optional[List[str]] = None,
 ) -> EnrichmentResponse:
     """
     Enrich a person using waterfall strategy.
     Tries each enabled provider in order until one succeeds.
     """
-    provider_order = settings.get_provider_order()
+    provider_order = providers if providers else settings.get_provider_order()
     last_error: Optional[EnrichmentError] = None
 
     for provider_name in provider_order:
@@ -87,15 +88,17 @@ async def enrich_person(
 async def enrich_people_bulk(
     people: List[PersonInput],
     api_keys: Optional[ApiKeys] = None,
+    providers: Optional[List[str]] = None,
 ) -> List[EnrichmentResponse]:
     """
     Enrich multiple people.
     For bulk, we only use Apollo (which has native bulk support).
     Falls back to individual enrichment if Apollo fails or is disabled.
     """
+    provider_order = providers if providers else settings.get_provider_order()
     apollo_key = _get_api_key("apollo", api_keys)
 
-    if apollo_key and "apollo" in settings.get_provider_order():
+    if apollo_key and "apollo" in provider_order:
         # Try Apollo bulk first
         logger.info(f"Trying Apollo bulk for {len(people)} people")
         results = await apollo.enrich_bulk(people, apollo_key)
@@ -108,11 +111,11 @@ async def enrich_people_bulk(
             else:
                 # Try waterfall for failed ones
                 logger.info(f"Apollo bulk failed for {people[i].linkedin_url}, trying waterfall")
-                waterfall_result = await enrich_person(people[i], api_keys)
+                waterfall_result = await enrich_person(people[i], api_keys, providers)
                 final_results.append(waterfall_result)
 
         return final_results
 
     # No Apollo, do individual enrichment for each
     logger.info(f"No Apollo bulk, enriching {len(people)} people individually")
-    return [await enrich_person(person, api_keys) for person in people]
+    return [await enrich_person(person, api_keys, providers) for person in people]

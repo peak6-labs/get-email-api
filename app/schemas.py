@@ -30,6 +30,10 @@ class EnrichmentRequest(BaseModel):
     """Single enrichment request with optional API keys."""
     person: PersonInput
     api_keys: Optional[ApiKeys] = None
+    providers: Optional[List[ProviderSource]] = Field(
+        default=None,
+        description="Optional list of providers to use, in order. Overrides default provider order."
+    )
 
 
 class EnrichmentSuccess(BaseModel):
@@ -55,6 +59,10 @@ EnrichmentResponse = Union[EnrichmentSuccess, EnrichmentError]
 class BulkEnrichmentRequest(BaseModel):
     people: List[PersonInput] = Field(..., max_length=10)
     api_keys: Optional[ApiKeys] = None
+    providers: Optional[List[ProviderSource]] = Field(
+        default=None,
+        description="Optional list of providers to use, in order. Overrides default provider order."
+    )
 
 
 class BulkEnrichmentResponse(BaseModel):

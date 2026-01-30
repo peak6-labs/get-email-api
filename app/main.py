@@ -59,10 +59,10 @@ async def enrich(request: EnrichmentRequest) -> EnrichmentResponse:
     Enrich a single person with their email address.
 
     Tries providers in configured order (waterfall) until one succeeds.
-    Optionally accepts API keys to override environment defaults.
+    Optionally accepts API keys and/or providers list to override defaults.
     """
     logger.info(f"Enriching person: {request.person.linkedin_url}")
-    result = await enrich_person(request.person, request.api_keys)
+    result = await enrich_person(request.person, request.api_keys, request.providers)
 
     if result.success:
         logger.info(f"Found email for {request.person.linkedin_url} via {result.source}")
@@ -95,10 +95,10 @@ async def enrich_bulk(request: BulkEnrichmentRequest) -> BulkEnrichmentResponse:
     Enrich multiple people with their email addresses (max 10).
 
     Uses Apollo bulk API when available, with waterfall fallback for failures.
-    Optionally accepts API keys to override environment defaults.
+    Optionally accepts API keys and/or providers list to override defaults.
     """
     logger.info(f"Bulk enriching {len(request.people)} people")
-    results = await enrich_people_bulk(request.people, request.api_keys)
+    results = await enrich_people_bulk(request.people, request.api_keys, request.providers)
     success_count = sum(1 for r in results if r.success)
     logger.info(f"Bulk enrichment complete: {success_count}/{len(results)} successful")
     return BulkEnrichmentResponse(results=results)
