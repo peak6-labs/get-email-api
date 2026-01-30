@@ -36,6 +36,8 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
                 params=params,
             )
 
+            if response.status_code == 404:
+                return create_error("not_found", "Person not found in RocketReach", person.linkedin_url)
             if response.status_code != 200:
                 return handle_http_error(response.status_code, "RocketReach", person.linkedin_url)
 
