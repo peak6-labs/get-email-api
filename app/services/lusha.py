@@ -32,7 +32,9 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
     if last_name:
         params["lastName"] = last_name
     if person.company:
-        params["company"] = person.company
+        params["companyName"] = person.company
+    if person.domain:
+        params["companyDomain"] = person.domain
 
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
         try:
@@ -47,8 +49,18 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
 
             data = response.json()
 
-            # Lusha returns data directly or in a data wrapper
-            person_data = data.get("data", data)
+            # Lusha response structure: {contact: {data: {...}, error: {...}}}
+            contact = data.get("contact", data)
+
+            # Check for error in response
+            error_info = contact.get("error")
+            if error_info and error_info.get("name") == "EMPTY_DATA":
+                return create_error("not_found", "No match found in Lusha", person.linkedin_url)
+
+            person_data = contact.get("data") or data.get("data", data)
+
+            if not person_data:
+                return create_error("not_found", "No profile data in Lusha response", person.linkedin_url)
 
             # Extract email from emailAddresses array
             email = None
