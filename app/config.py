@@ -10,8 +10,8 @@ class Settings(BaseSettings):
     prospeo_api_key: str = ""
     snov_api_key: str = ""
 
-    # Provider order (comma-separated, e.g., "apollo,rocketreach,lusha")
-    provider_order: str = "apollo,rocketreach,lusha,prospeo,snov"
+    # Provider order (comma-separated, e.g., "apollo,rocketreach,prospeo")
+    provider_order: str = "apollo,rocketreach,prospeo,snov"
 
     # Server config
     port: int = 8000
