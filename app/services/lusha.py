@@ -54,8 +54,14 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
 
             # Check for error in response
             error_info = contact.get("error")
-            if error_info and error_info.get("name") == "EMPTY_DATA":
-                return create_error("not_found", "No match found in Lusha", person.linkedin_url)
+            if error_info:
+                error_name = error_info.get("name", "")
+                if error_name == "EMPTY_DATA":
+                    return create_error("not_found", "No match found in Lusha", person.linkedin_url)
+                elif error_name == "COMPLIANCE_CONTACT_ERROR":
+                    return create_error("not_found", "Contact restricted by compliance in Lusha", person.linkedin_url)
+                elif error_name:
+                    return create_error("api_error", f"Lusha error: {error_name}", person.linkedin_url)
 
             person_data = contact.get("data") or data.get("data", data)
 

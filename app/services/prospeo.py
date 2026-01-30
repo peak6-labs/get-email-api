@@ -38,24 +38,47 @@ async def enrich(person: PersonInput, api_key: str) -> EnrichmentResponse:
             data = response.json()
 
             # Check for error response
-            if data.get("error"):
+            if data.get("error") is True:
                 error_msg = data.get("message", "No match found in Prospeo")
                 return create_error("not_found", error_msg, person.linkedin_url)
 
-            # Extract from response wrapper
-            result = data.get("response", data)
+            # Extract person data (new format uses 'person', old used 'response')
+            person_data = data.get("person") or data.get("response", data)
 
-            email = result.get("email")
+            if not person_data:
+                return create_error("not_found", "No profile found in Prospeo", person.linkedin_url)
+
+            # Email can be a string or an object {status, revealed, email}
+            email_data = person_data.get("email")
+            email = None
+            if isinstance(email_data, str):
+                email = email_data
+            elif isinstance(email_data, dict):
+                if email_data.get("status") == "VERIFIED" or email_data.get("revealed"):
+                    email = email_data.get("email")
+
             if not email:
                 return create_error("not_found", "No email found in Prospeo", person.linkedin_url)
 
+            # Extract name and job info
+            full_name = person_data.get("full_name") or person_data.get("name")
+            title = person_data.get("current_job_title") or person_data.get("title") or person_data.get("headline")
+
+            # Company might be nested
+            company_data = data.get("company") or person_data.get("company")
+            company = None
+            if isinstance(company_data, dict):
+                company = company_data.get("name")
+            elif isinstance(company_data, str):
+                company = company_data
+
             return create_success(
                 email=email,
-                linkedin_url=result.get("linkedin") or person.linkedin_url,
+                linkedin_url=person_data.get("linkedin_url") or person.linkedin_url,
                 source=PROVIDER_NAME,
-                name=result.get("name"),
-                title=result.get("title"),
-                company=result.get("company"),
+                name=full_name,
+                title=title,
+                company=company,
             )
 
         except httpx.TimeoutException:
